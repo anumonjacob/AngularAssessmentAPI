@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33829.357
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AngularAssessmentAPI", "AngularAssessmentAPI\AngularAssessmentAPI.csproj", "{0FCD5AEB-601F-4DA8-B1D6-E0B25827CE4E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AssessmentXUnit", "AssessmentXUnit\AssessmentXUnit.csproj", "{64DAD899-8271-456D-9EC2-A0D74240BE6C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0FCD5AEB-601F-4DA8-B1D6-E0B25827CE4E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FCD5AEB-601F-4DA8-B1D6-E0B25827CE4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FCD5AEB-601F-4DA8-B1D6-E0B25827CE4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FCD5AEB-601F-4DA8-B1D6-E0B25827CE4E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64DAD899-8271-456D-9EC2-A0D74240BE6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64DAD899-8271-456D-9EC2-A0D74240BE6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64DAD899-8271-456D-9EC2-A0D74240BE6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64DAD899-8271-456D-9EC2-A0D74240BE6C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B99B4ED9-E586-44E1-9492-8DB64689C40B}
+	EndGlobalSection
+EndGlobal
