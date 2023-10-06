@@ -16,6 +16,8 @@ using Humanizer;
 using Newtonsoft.Json.Linq;
 using static Azure.Core.HttpHeader;
 using Xunit;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace AssessmentXUnit.Controllers
 {
@@ -254,7 +256,6 @@ namespace AssessmentXUnit.Controllers
             var okResult = Assert.IsType<OkObjectResult>(result);
             okResult.Value.Should().BeEquivalentTo(new { status = "Deleted" });
             tableInterface.Verify(x => x.DeleteTable(id), Times.Once());
-            tableInterface.Verify(x => x.DeleteTable(id), Times.Once());
         }
 
         [Fact]
@@ -292,6 +293,60 @@ namespace AssessmentXUnit.Controllers
             badRequestResult.Value.Should().Be(errorMessage);
             tableInterface.Verify(repo => repo.IsExists(id), Times.Once());
             tableInterface.Verify(x => x.DeleteTable(id), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetAllTablesById_ReturnsOk_WhenTablesExists()
+        {
+            // Arrange
+            Guid id = Guid.NewGuid();
+            var aoTable = fixture.Create<AoTable>();
+            tableInterface.Setup(repo => repo.GetAllTablesById(id)).ReturnsAsync(aoTable);
+
+            // Act
+            var result = await tableController.GetAllTablesById(id);
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+            var okObjectResult = result as OkObjectResult;
+            okObjectResult.Value.Should().Be(aoTable);
+            tableInterface.Verify(repo => repo.GetAllTablesById(id), Times.Once());
+        }
+
+        [Fact]
+        public async Task GetAllTablesById_ReturnsBadRequest_WhenTableNotFound()
+        {
+            // Arrange
+            Guid id = Guid.NewGuid();
+            tableInterface.Setup(repo => repo.GetAllTablesById(id)).ReturnsAsync((AoTable?)null);
+
+            // Act
+            var result = await tableController.GetAllTablesById(id);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequestResult = result as BadRequestObjectResult;
+            badRequestResult.Value.Should().Be("Table Not Found");
+            tableInterface.Verify(t => t.GetAllTablesById(id), Times.Once());
+        }
+
+        [Fact]
+        public async Task GetAllTablesById_ReturnsBadRequest_WhenExceptionOccurs()
+        {
+            // Arrange
+            Guid id = Guid.NewGuid();
+            var errorMessage = "An error occurred.";
+            tableInterface.Setup(repo => repo.GetAllTablesById(id)).Throws(new Exception(errorMessage));
+
+            // Act
+            var result = await tableController.GetAllTablesById(id);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequestResult = result as BadRequestObjectResult;
+            badRequestResult.Value.Should().Be(errorMessage);
+            Assert.Equal(StatusCodes.Status400BadRequest, badRequestResult.StatusCode);
+            tableInterface.Verify(x => x.DeleteTable(id), Times.Never);
         }
     }
 
