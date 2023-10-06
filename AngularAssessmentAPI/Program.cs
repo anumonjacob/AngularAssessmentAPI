@@ -7,7 +7,7 @@ using AngularAssessmentAPI.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddDbContext<AssessmentDbContext>(options =>
+builder.Services.AddDbContext<TableDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionString")));
 
 builder.Services.AddControllers();

@@ -34,267 +34,264 @@ namespace AssessmentXUnit.Controllers
 
         //TestCases for AoTable
         [Fact]
-        public async Task GetAllTables_ReturnsOkResultWithValidDatas()
+        public async Task GetAllTables_ReturnsOk_WhenTablesExists()
         {
             // Arrange
-            var mockTableInterface = new Mock<ITableInterface>();
-            mockTableInterface.Setup(repo => repo.GetAllTables()).ReturnsAsync(new List<AoTable> { new AoTable { Id = Guid.NewGuid(), Name = "Table1" } });
-            var controller = new AoTablesController(mockTableInterface.Object);
-
+            List<AoTable> aoTables = fixture.CreateMany<AoTable>().ToList();
+            tableInterface.Setup(repo => repo.GetAllTables()).ReturnsAsync(aoTables);
 
             // Act
-            var result = await controller.GetAllTables() as OkObjectResult;
+            var result = await tableController.GetAllTables();
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Equal(200, result.StatusCode);
-            Assert.NotNull(result.Value);
-            var tables = Assert.IsType<List<AoTable>>(result.Value);
-            Assert.Equal(1, tables.Count);
+            Assert.IsType<OkObjectResult>(result);
+            var okResult = result as OkObjectResult;
+            Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+            var tables = okResult.Value as List<AoTable>;
+            tables.Should().NotBeNull().And.NotBeEmpty();
+            Assert.Equal(aoTables.Count, tables.Count);
+            tableInterface.Verify(repo => repo.GetAllTables(), Times.Once());
         }
 
             [Fact]
-            public async Task GetAllTables_ReturnsNotFoundForInvalidId()
+            public async Task GetAllTables_ReturnsNotFound_WhenInvalidResult()
             {
-                // Arrange
-                var mockTableInterface = new Mock<ITableInterface>();
-                mockTableInterface.Setup(repo => repo.GetAllTablesById(It.IsAny<Guid>())).ReturnsAsync((AoTable)null);
-                var controller = new AoTablesController(mockTableInterface.Object);
-
-
-                // Act
-                var result = await controller.GetAllTablesById(Guid.NewGuid()) as BadRequestObjectResult;
-
-
-                // Assert
-                Assert.NotNull(result);
-                Assert.Equal(400, result.StatusCode);
-                Assert.Equal("Data Not Found", result.Value);
-            }
-
-        [Fact]
-        public async Task GetAllTables_ExceptionOccurs_ReturnsBadRequest()
-        {
             // Arrange
-            var tableInterfaceMock = new Mock<ITableInterface>();
-            tableInterfaceMock.Setup(repo => repo.GetAllTables()).ThrowsAsync(new Exception("Sample exception"));
+            tableInterface.Setup(repo => repo.GetAllTables()).ReturnsAsync(new List<AoTable>());
 
-            var controller = new AoTablesController(tableInterfaceMock.Object);
 
             // Act
-            var result = await controller.GetAllTables();
+            var result = await tableController.GetAllTables();
+
+
+            // Assert
+            result.Should().NotBeNull();
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var errorMessage = Assert.IsType<string>(badRequestResult.Value);
+            Assert.Equal("No Table Found", errorMessage);
+            tableInterface.Verify(repo => repo.GetAllTables(), Times.Once());
+        }
+
+        [Fact]
+        public async Task GetAllTables_ExceptionOccurs_WhenReturnsBadRequest()
+        {
+            // Arrange
+            tableInterface.Setup(c => c.GetAllTables()).Throws(new Exception("Something went wrong"));
+
+            // Act
+            var result = await tableController.GetAllTables();
 
             // Assert
             var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
             var errorMessage = Assert.IsType<string>(badRequestResult.Value);
-            Assert.Equal("Sample exception", errorMessage);
+            Assert.Equal(StatusCodes.Status400BadRequest, badRequestResult.StatusCode);
+            Assert.Equal("Something went wrong", errorMessage);
+            tableInterface.Verify(repo => repo.GetAllTables(), Times.Once());
         }
 
 
         [Fact]
-        public async Task UpdateTable_ReturnsOkForValidUpdate()
+        public async Task UpdateTable_ReturnsOk_WhenValidTableData()
     {
-        // Arrange
-            var id = Guid.NewGuid();
-        var aoTable = new AoTable { Id = id, Name = "UpdatedTable" };
-            var mockTableInterface = new Mock<ITableInterface>();
-            mockTableInterface.Setup(repo => repo.IsExists(id)).ReturnsAsync(true);
-            mockTableInterface.Setup(repo => repo.UpdateTable(id, aoTable)).ReturnsAsync(true);
-            var controller = new AoTablesController(mockTableInterface.Object);
+            // Arrange
+            Guid id = fixture.Create<Guid>();
+            var updateTable = fixture.Create<AoTable>();
+            updateTable.Id = id;
+            tableInterface.Setup(v => v.IsExists(id)).ReturnsAsync(true);
+            tableInterface.Setup(repo => repo.UpdateTable(updateTable)).ReturnsAsync(true);
 
             // Act
-            var result = await controller.UpdateTable(id, aoTable) as OkObjectResult;
+            var result = await tableController.UpdateTable(updateTable);
 
             // Assert
-            Assert.NotNull(result);
+            result.Should().NotBeNull();
             Assert.IsType<OkObjectResult>(result);
             var okResult = result as OkObjectResult;
             Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
             okResult.Value.Should().BeEquivalentTo(new { status = "Success" });
+            tableInterface.Verify(v => v.IsExists(id), Times.Once());
+            tableInterface.Verify(b => b.UpdateTable(updateTable), Times.Once());
         }
 
         [Fact]
-        public async Task UpdateTable_IdNotFound_ReturnsBadRequest()
+        public async Task UpdateTable_ReturnsBadRequest_WhenIdNotFound()
         {
             // Arrange
-            var tableInterfaceMock = new Mock<ITableInterface>();
-            var updatedTable = new AoTable { Id = Guid.NewGuid(), Name = "UpdatedTable" };
-            tableInterfaceMock.Setup(repo => repo.IsExists(updatedTable.Id)).ReturnsAsync(false);
-
-            var controller = new AoTablesController(tableInterfaceMock.Object);
+            Guid id = fixture.Create<Guid>();
+            var updateTable = fixture.Create<AoTable>();
+            updateTable.Id = id;
+            tableInterface.Setup(x => x.IsExists(id)).ReturnsAsync(false);
+            tableInterface.Setup(x => x.UpdateTable(updateTable)).ReturnsAsync(false);
 
             // Act
-            var result = await controller.UpdateTable(updatedTable.Id, updatedTable);
+            var result = await tableController.UpdateTable(updateTable);
+
+            // Assert
+            result.Should().NotBeNull();
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var errorMessage = Assert.IsType<string>(badRequestResult.Value);
+            Assert.Equal("Update Failed! Table not found", errorMessage);
+            tableInterface.Verify(v => v.IsExists(id), Times.Once());
+            tableInterface.Verify(x => x.UpdateTable(updateTable), Times.Never());
+        }
+
+        [Fact]
+        public async Task UpdateTable_ReturnsBadRequest_WhenStatusNotSuccess()
+        {
+            // Arrange
+            var id = fixture.Create<Guid>();
+            var aoTable = fixture.Create<AoTable>();
+            aoTable.Id = id;
+            var ReturnData = false;
+            tableInterface.Setup(repo => repo.IsExists(id)).ReturnsAsync(true);
+            tableInterface.Setup(repo => repo.UpdateTable(aoTable)).ReturnsAsync(ReturnData);
+
+
+            // Act
+            var result = await tableController.UpdateTable(aoTable);
+
+            // Assert
+            result.Should().NotBeNull();
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var errorMessage = Assert.IsType<string>(badRequestResult.Value);
+            Assert.Equal("Update failed", errorMessage);
+            tableInterface.Verify(x => x.IsExists(id), Times.Once());
+            tableInterface.Verify(x => x.UpdateTable(aoTable), Times.Once());
+        }
+
+        [Fact]
+        public async Task UpdateTable_ReturnsBadRequest_WhenExceptionOccurs()
+        {
+            // Arrange
+            Guid id = fixture.Create<Guid>();
+            var updateTable = fixture.Create<AoTable>();
+            updateTable.Id = id;
+
+            tableInterface.Setup(v => v.IsExists(id)).ReturnsAsync(true);
+            tableInterface.Setup(b => b.UpdateTable(updateTable)).ThrowsAsync(new Exception("Something went wrong"));
+
+            // Act
+            var result = await tableController.UpdateTable(updateTable);
 
             // Assert
             var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
             var errorMessage = Assert.IsType<string>(badRequestResult.Value);
-            Assert.Equal("Id not found", errorMessage);
+            result.Should().NotBeNull();
+            Assert.Equal("Something went wrong", errorMessage);
+            tableInterface.Verify(v => v.IsExists(id), Times.Once());
+            tableInterface.Verify(b => b.UpdateTable(updateTable), Times.Once());
         }
 
         [Fact]
-        public async Task UpdateTable_ReturnsBadRequestForInvalidId()
+        public async Task AddTable_ReturnsOk_WhenValidTable()
         {
             // Arrange
-            var mockTableInterface = new Mock<ITableInterface>();
-            var controller = new AoTablesController(mockTableInterface.Object);
-            var id = Guid.NewGuid();
-            var aoTable = new AoTable { Id = Guid.NewGuid(), Name = "Table1" };
+            var aoTable = fixture.Create<AoTable>();
+            var returnData = fixture.Create<AoTable>();
+            tableInterface.Setup(repo => repo.AddTable(aoTable)).ReturnsAsync(returnData);
 
             // Act
-            var result = await controller.UpdateTable(id, aoTable) as BadRequestResult;
+            var result = await tableController.AddTable(aoTable);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Should().BeAssignableTo<OkObjectResult>();
+            var okObjectResult = result.As<OkObjectResult>();
+            okObjectResult.Value.Should().BeEquivalentTo(returnData);
+            tableInterface.Verify(t => t.AddTable(aoTable), Times.Once());
+        }
+    
+
+        [Fact]
+        public async Task AddTable_ReturnsBadRequest_WhenNullTable()
+        {
+        // Arrange
+            AoTable aoTable = null;
+            tableInterface.Setup(c => c.AddTable(aoTable)).ReturnsAsync((AoTable)null);
+
+            // Act
+            var result = await tableController.AddTable(null) as BadRequestResult;
 
             // Assert
             Assert.NotNull(result);
             Assert.Equal(400, result.StatusCode);
+            tableInterface.Verify(t => t.AddTable(aoTable), Times.Never());
         }
 
         [Fact]
-        public async Task UpdateTable_ReturnsBadRequestForFailedUpdate()
+        public async Task AddTable_ReturnsBadRequest_WhenExceptionOccurs()
         {
             // Arrange
-            var id = Guid.NewGuid();
-            var aoTable = new AoTable { Id = id, Name = "UpdatedTable" };
-            var mockTableInterface = new Mock<ITableInterface>();
-            mockTableInterface.Setup(repo => repo.IsExists(id)).ReturnsAsync(true);
-            mockTableInterface.Setup(repo => repo.UpdateTable(id, aoTable)).ReturnsAsync(false);
-            var controller = new AoTablesController(mockTableInterface.Object);
+            var aoTable = fixture.Create<AoTable>();
+            tableInterface.Setup(repo => repo.AddTable(aoTable))
+                .ThrowsAsync(new Exception("Error message"));
 
             // Act
-            var result = await controller.UpdateTable(id, aoTable) as BadRequestObjectResult;
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.Equal(400, result.StatusCode);
-            Assert.Equal("Update failed", result.Value);
-        }
-
-        [Fact]
-        public async Task UpdateTable_ExceptionOccurs_ReturnsBadRequest()
-        {
-            // Arrange
-            var tableInterfaceMock = new Mock<ITableInterface>();
-            var existingTable = new AoTable { Id = Guid.NewGuid(), Name = "Table1" };
-            tableInterfaceMock.Setup(repo => repo.IsExists(It.IsAny<Guid>())).ReturnsAsync(true);
-            tableInterfaceMock.Setup(repo => repo.UpdateTable(It.IsAny<Guid>(), It.IsAny<AoTable>())).ThrowsAsync(new Exception("Sample exception"));
-
-            var controller = new AoTablesController(tableInterfaceMock.Object);
-
-            // Act
-            var result = await controller.UpdateTable(existingTable.Id, existingTable);
+            var result = await tableController.AddTable(aoTable);
 
             // Assert
             var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
             var errorMessage = Assert.IsType<string>(badRequestResult.Value);
-            Assert.Equal("Sample exception", errorMessage);
+            result.Should().NotBeNull();
+            tableInterface.Verify(t => t.AddTable(aoTable), Times.Once());
+            Assert.Equal("Error message", errorMessage);
         }
 
         [Fact]
-        public async Task AddTable_ReturnsOkForValidTable()
+        public async Task DeleteTable_ReturnsOk_WhenTableExits()
         {
             // Arrange
-            var aoTable = new AoTable { Id = Guid.NewGuid(), Name = "NewTable" };
-            var mockTableInterface = new Mock<ITableInterface>();
-            mockTableInterface.Setup(repo => repo.AddTable(aoTable)).ReturnsAsync(aoTable);
-            var controller = new AoTablesController(mockTableInterface.Object);
+            var id = fixture.Create<Guid>();
+            var aoTable = fixture.Create<AoTable>();
+            tableInterface.Setup(repo => repo.IsExists(id)).ReturnsAsync(true);
+            tableInterface.Setup(repo => repo.DeleteTable(id)).Returns(Task.CompletedTask);
 
             // Act
-            var result = await controller.AddTable(aoTable) as OkObjectResult;
+            var result = await tableController.DeleteTable(id);
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Equal(200, result.StatusCode);
-            var returnedTable = Assert.IsType<AoTable>(result.Value);
-            Assert.Equal(aoTable.Id, returnedTable.Id);
-        }
-
-        [Fact]
-        public async Task AddTable_ReturnsBadRequestForNullTable()
-        {
-            // Arrange
-            var mockTableInterface = new Mock<ITableInterface>();
-            var controller = new AoTablesController(mockTableInterface.Object);
-
-            // Act
-            var result = await controller.AddTable(null) as BadRequestResult;
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.Equal(400, result.StatusCode);
-        }
-
-        [Fact]
-        public async Task AddTable_ExceptionOccurs_ReturnsBadRequest()
-        {
-            // Arrange
-            var tableInterfaceMock = new Mock<ITableInterface>();
-            var newTable = new AoTable { Name = "NewTable" };
-            tableInterfaceMock.Setup(repo => repo.AddTable(It.IsAny<AoTable>())).ThrowsAsync(new Exception("Sample exception"));
-
-            var controller = new AoTablesController(tableInterfaceMock.Object);
-
-            // Act
-            var result = await controller.AddTable(newTable);
-
-            // Assert
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-            var errorMessage = Assert.IsType<string>(badRequestResult.Value);
-            Assert.Equal("Sample exception", errorMessage);
-        }
-
-        [Fact]
-        public async Task DeleteTable_ReturnsOkForValidId()
-        {
-            // Arrange
-            var id = Guid.NewGuid();
-            var mockTableInterface = new Mock<ITableInterface>();
-            mockTableInterface.Setup(repo => repo.IsExists(id)).ReturnsAsync(true);
-            var controller = new AoTablesController(mockTableInterface.Object);
-
-            // Act
-            var result = await controller.DeleteTable(id) as OkObjectResult;
-
-            // Assert
-            Assert.NotNull(result);
+            result.Should().NotBeNull();
             var okResult = Assert.IsType<OkObjectResult>(result);
             okResult.Value.Should().BeEquivalentTo(new { status = "Deleted" });
+            tableInterface.Verify(x => x.DeleteTable(id), Times.Once());
+            tableInterface.Verify(x => x.DeleteTable(id), Times.Once());
         }
 
         [Fact]
-        public async Task DeleteTable_ReturnsBadRequestForInvalidId()
+        public async Task DeleteTable_ReturnsBadRequest_WhenTableNotFound()
+        {
+            // Arrange
+            var id = fixture.Create<Guid>();
+            tableInterface.Setup(repo => repo.IsExists(id)).ReturnsAsync(false);
+
+            // Act
+            var result = await tableController.DeleteTable(id);
+
+            // Assert
+            result.Should().NotBeNull();
+            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequestResult.Value.Should().Be("Delete Failed! Table not found");
+            tableInterface.Verify(repo => repo.IsExists(id), Times.Once());
+            tableInterface.Verify(x => x.DeleteTable(id), Times.Never);
+        }
+        [Fact]
+        public async Task DeleteTable_ReturnsBadRequest_WhenExceptionOccurs()
         {
             // Arrange
             var id = Guid.NewGuid();
-            var mockTableInterface = new Mock<ITableInterface>();
-            mockTableInterface.Setup(repo => repo.IsExists(id)).ReturnsAsync(false);
-            var controller = new AoTablesController(mockTableInterface.Object);
+            var errorMessage = "An error occurred";
+            tableInterface.Setup(repo => repo.IsExists(id)).ReturnsAsync(true);
+            tableInterface.Setup(repo => repo.DeleteTable(id)).ThrowsAsync(new Exception(errorMessage));
 
             // Act
-            var result = await controller.DeleteTable(id) as BadRequestObjectResult;
+            var result = await tableController.DeleteTable(id);
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Equal(400, result.StatusCode);
-            Assert.Equal("Id not found", result.Value);
-        }
-        [Fact]
-        public async Task DeleteTable_ExceptionOccurs_ReturnsBadRequest()
-        {
-            // Arrange
-            var tableInterfaceMock = new Mock<ITableInterface>();
-            var tableId = Guid.NewGuid();
-            tableInterfaceMock.Setup(repo => repo.IsExists(It.IsAny<Guid>())).ReturnsAsync(true);
-            tableInterfaceMock.Setup(repo => repo.DeleteTable(It.IsAny<Guid>())).ThrowsAsync(new Exception("Sample exception"));
-
-            var controller = new AoTablesController(tableInterfaceMock.Object);
-
-            // Act
-            var result = await controller.DeleteTable(tableId);
-
-            // Assert
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-            var errorMessage = Assert.IsType<string>(badRequestResult.Value);
-            Assert.Equal("Sample exception", errorMessage);
+            result.Should().NotBeNull();
+            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequestResult.Value.Should().Be(errorMessage);
+            tableInterface.Verify(repo => repo.IsExists(id), Times.Once());
+            tableInterface.Verify(x => x.DeleteTable(id), Times.Once);
         }
     }
 

@@ -27,14 +27,14 @@ namespace AngularAssessmentAPI.Controllers
         {
             try
             {
-                var names = await TableInterface.GetAllTables();
-                if (names == null || !names.Any())
+                var tables = await TableInterface.GetAllTables();
+                if (tables == null || !tables.Any())
                 {
-                    return BadRequest("Data is Empty");
+                    return BadRequest("No Table Found");
                 }
                 else
                 {
-                    return Ok(names);
+                    return Ok(tables);
                 }
 
             }
@@ -52,7 +52,7 @@ namespace AngularAssessmentAPI.Controllers
                 var table = await TableInterface.GetAllTablesById(id);
                 if (table == null)
                 {
-                    return BadRequest("Data Not Found");
+                    return BadRequest("Table Not Found");
                 }
                 else
                 {
@@ -65,21 +65,17 @@ namespace AngularAssessmentAPI.Controllers
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTable([FromRoute] Guid id, [FromBody] AoTable aoTable)
+        [HttpPut]
+        public async Task<IActionResult> UpdateTable([FromBody] AoTable aoTable)
         {
             try
             {
-                if (id != aoTable.Id)
-                {
-                    return BadRequest();
-                }
 
-                var isTrue = await TableInterface.IsExists(id);
+                var isTrue = await TableInterface.IsExists(aoTable.Id);
 
                 if (isTrue)
                 {
-                    var success = await TableInterface.UpdateTable(id, aoTable);
+                    var success = await TableInterface.UpdateTable(aoTable);
 
                     if (success)
                     {
@@ -93,7 +89,7 @@ namespace AngularAssessmentAPI.Controllers
                 }
                 else
                 {
-                    return BadRequest("Id not found");
+                    return BadRequest("Update Failed! Table not found");
                 }
             }
             catch (Exception ex)
@@ -144,7 +140,7 @@ namespace AngularAssessmentAPI.Controllers
                 }
                 else
                 {
-                    return BadRequest("Id not found");
+                    return BadRequest("Delete Failed! Table not found");
                 }
             }
             catch (Exception ex)

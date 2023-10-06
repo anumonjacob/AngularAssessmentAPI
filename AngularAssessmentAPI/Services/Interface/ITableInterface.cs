@@ -8,7 +8,7 @@ namespace AngularAssessmentAPI.Services.Interface
         public Task<AoTable> GetAllTablesById(Guid id);
         public Task<AoTable> AddTable(AoTable aoTable);
         public Task DeleteTable(Guid id);
-        public Task<bool> UpdateTable(Guid id, AoTable aoTable);
+        public Task<bool> UpdateTable(AoTable aoTable);
         public Task<bool> IsExists(Guid id);
 
         public Task<ICollection<AoTable>> GetAllTables();

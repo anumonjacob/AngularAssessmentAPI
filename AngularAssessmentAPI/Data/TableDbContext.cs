@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AngularAssessmentAPI.Data
 {
-    public partial class AssessmentDbContext : DbContext
+    public partial class TableDbContext : DbContext
     {
-        public AssessmentDbContext()
+        public TableDbContext()
         {
         }
 
-        public AssessmentDbContext(DbContextOptions<AssessmentDbContext> options): base(options)
+        public TableDbContext(DbContextOptions<TableDbContext> options): base(options)
         {
         }
 
